@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from 'react';
@@ -12,8 +13,13 @@ import { getTrendingKeywords, type TrendingKeyword } from '@/services/trending-k
 import { useToast } from "@/hooks/use-toast";
 import { UpgradeProModal } from '@/components/content-forge/UpgradeProModal';
 import { Card, CardContent } from '@/components/ui/card';
+// Removed useAuth as it's not directly used to alter MOCK_USER_IS_PREMIUM yet.
+// If premium status were tied to auth, we would use it here.
+// import { useAuth } from '@/hooks/use-auth'; 
 
-// Mock user data - in a real app, this would come from Firebase Auth/Firestore
+
+// Mock user data - in a real app, this would come from Firebase Auth/Firestore or a backend.
+// For now, a signed-in user is NOT automatically premium. This remains false.
 const MOCK_USER_IS_PREMIUM = false; 
 
 export default function ContentForgePage() {
@@ -25,6 +31,7 @@ export default function ContentForgePage() {
   const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState<boolean>(false);
   
   const { toast } = useToast();
+  // const { user } = useAuth(); // User object from auth context. Not used yet for premium logic.
 
   const handlePlatformChange = (platform: Platform) => {
     setSelectedPlatform(platform);
@@ -32,6 +39,8 @@ export default function ContentForgePage() {
   };
 
   const handlePrecisionModeChange = (checked: boolean) => {
+    // The logic remains: if trying to enable precision mode and not premium, show modal.
+    // Auth status does not grant premium status by default with this MOCK_USER_IS_PREMIUM.
     if (checked && !MOCK_USER_IS_PREMIUM) {
       setIsUpgradeModalOpen(true);
       setIsPrecisionMode(false); // Keep it off if not premium
@@ -47,8 +56,8 @@ export default function ContentForgePage() {
 
     try {
       let trendingKeywords: TrendingKeyword[] = [];
-      if (isPrecisionMode && MOCK_USER_IS_PREMIUM) {
-        // In a real app, category might be selected by user or inferred
+      // Precision mode logic still depends on MOCK_USER_IS_PREMIUM
+      if (isPrecisionMode && MOCK_USER_IS_PREMIUM) { 
         trendingKeywords = await getTrendingKeywords('general'); 
       }
 
@@ -82,7 +91,7 @@ export default function ContentForgePage() {
           <PrecisionModeToggle 
             isPrecisionMode={isPrecisionMode} 
             onPrecisionModeChange={handlePrecisionModeChange}
-            isPremiumUser={MOCK_USER_IS_PREMIUM}
+            isPremiumUser={MOCK_USER_IS_PREMIUM} // This will always be false for now
           />
         </CardContent>
       </Card>
