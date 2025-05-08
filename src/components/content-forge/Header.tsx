@@ -1,8 +1,13 @@
+
 import { Sparkles } from 'lucide-react';
+import { ModeToggle } from '@/components/ui/mode-toggle';
 
 export function Header() {
   return (
-    <header className="mb-8 text-center">
+    <header className="mb-8 text-center relative">
+      <div className="absolute top-0 right-0 mt-0 mr-0 sm:mt-2 sm:mr-2 z-50">
+        <ModeToggle />
+      </div>
       <div className="flex items-center justify-center mb-2">
         <Sparkles className="h-10 w-10 text-primary mr-3" />
         <h1 className="text-4xl sm:text-5xl font-bold tracking-tight text-foreground">
@@ -15,3 +20,4 @@ export function Header() {
     </header>
   );
 }
+
