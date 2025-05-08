@@ -1,3 +1,4 @@
+
 "use client";
 
 import {
@@ -16,16 +17,16 @@ import { Zap } from "lucide-react";
 interface UpgradeProModalProps {
   isOpen: boolean;
   onClose: () => void;
+  onUpgrade: () => void; // New prop for handling successful upgrade
 }
 
-export function UpgradeProModal({ isOpen, onClose }: UpgradeProModalProps) {
+export function UpgradeProModal({ isOpen, onClose, onUpgrade }: UpgradeProModalProps) {
   if (!isOpen) return null;
 
-  const handleUpgrade = () => {
+  const handleUpgradeClick = () => {
     // In a real app, this would redirect to a payment page or open a payment modal.
-    // For now, we'll just log and close.
-    console.log("Upgrade to Pro clicked!");
-    onClose(); 
+    // For this mock, we call the onUpgrade prop passed from the parent.
+    onUpgrade(); 
   };
 
   return (
@@ -50,7 +51,7 @@ export function UpgradeProModal({ isOpen, onClose }: UpgradeProModalProps) {
         <AlertDialogFooter className="flex flex-col sm:flex-row gap-2">
           <AlertDialogCancel onClick={onClose} className="w-full sm:w-auto">Maybe Later</AlertDialogCancel>
           <AlertDialogAction asChild className="w-full sm:w-auto">
-            <Button onClick={handleUpgrade} className="bg-primary hover:bg-primary/90 text-primary-foreground">
+            <Button onClick={handleUpgradeClick} className="bg-primary hover:bg-primary/90 text-primary-foreground">
               Upgrade to Pro
             </Button>
           </AlertDialogAction>

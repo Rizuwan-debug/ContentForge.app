@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import type { Platform, GeneratedContent } from '@/types';
 import { Header } from '@/components/content-forge/Header';
 import { PlatformSelector } from '@/components/content-forge/PlatformSelector';
@@ -13,14 +13,8 @@ import { getTrendingKeywords, type TrendingKeyword } from '@/services/trending-k
 import { useToast } from "@/hooks/use-toast";
 import { UpgradeProModal } from '@/components/content-forge/UpgradeProModal';
 import { Card, CardContent } from '@/components/ui/card';
-// Removed useAuth as it's not directly used to alter MOCK_USER_IS_PREMIUM yet.
-// If premium status were tied to auth, we would use it here.
-// import { useAuth } from '@/hooks/use-auth'; 
+import { useAuth } from '@/hooks/use-auth'; 
 
-
-// Mock user data - in a real app, this would come from Firebase Auth/Firestore or a backend.
-// For now, a signed-in user is NOT automatically premium. This remains false.
-const MOCK_USER_IS_PREMIUM = false; 
 
 export default function ContentForgePage() {
   const [selectedPlatform, setSelectedPlatform] = useState<Platform>('youtube');
@@ -29,21 +23,32 @@ export default function ContentForgePage() {
   const [generatedContent, setGeneratedContent] = useState<GeneratedContent | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState<boolean>(false);
+  const [isPremiumUser, setIsPremiumUser] = useState<boolean>(false); // Manage premium status with state
   
   const { toast } = useToast();
-  // const { user } = useAuth(); // User object from auth context. Not used yet for premium logic.
+  const { user } = useAuth(); 
+
+  // Effect to potentially set premium status based on user, e.g., from Firestore custom claims
+  // For now, it's just a placeholder. In a real app, you'd fetch this.
+  useEffect(() => {
+    if (user) {
+      // Example: Check if user.uid === 'some_premium_user_uid' or fetch premium status from DB
+      // setIsPremiumUser(checkIfUserIsPremium(user.uid)); 
+    } else {
+      setIsPremiumUser(false); // Reset premium status if user logs out
+    }
+  }, [user]);
+
 
   const handlePlatformChange = (platform: Platform) => {
     setSelectedPlatform(platform);
-    setGeneratedContent(null); // Clear content when platform changes
+    setGeneratedContent(null); 
   };
 
   const handlePrecisionModeChange = (checked: boolean) => {
-    // The logic remains: if trying to enable precision mode and not premium, show modal.
-    // Auth status does not grant premium status by default with this MOCK_USER_IS_PREMIUM.
-    if (checked && !MOCK_USER_IS_PREMIUM) {
+    if (checked && !isPremiumUser) {
       setIsUpgradeModalOpen(true);
-      setIsPrecisionMode(false); // Keep it off if not premium
+      setIsPrecisionMode(false); 
     } else {
       setIsPrecisionMode(checked);
     }
@@ -56,15 +61,14 @@ export default function ContentForgePage() {
 
     try {
       let trendingKeywords: TrendingKeyword[] = [];
-      // Precision mode logic still depends on MOCK_USER_IS_PREMIUM
-      if (isPrecisionMode && MOCK_USER_IS_PREMIUM) { 
+      if (isPrecisionMode && isPremiumUser) { 
         trendingKeywords = await getTrendingKeywords('general'); 
       }
 
       const content = await generateAppContent({
         platform: selectedPlatform,
         topic,
-        isPrecisionMode: isPrecisionMode && MOCK_USER_IS_PREMIUM,
+        isPrecisionMode: isPrecisionMode && isPremiumUser,
         trendingKeywords,
       });
       setGeneratedContent(content);
@@ -80,6 +84,17 @@ export default function ContentForgePage() {
     }
   };
 
+  const handleUpgradeSuccess = () => {
+    setIsPremiumUser(true);
+    setIsUpgradeModalOpen(false);
+    setIsPrecisionMode(true); // Automatically enable precision mode on upgrade
+    toast({
+      title: "Upgrade Successful!",
+      description: "You are now a Pro member. Precision Mode unlocked!",
+      variant: "default", 
+    });
+  };
+
   return (
     <div className="container mx-auto max-w-3xl py-8 px-4">
       <Header />
@@ -91,7 +106,7 @@ export default function ContentForgePage() {
           <PrecisionModeToggle 
             isPrecisionMode={isPrecisionMode} 
             onPrecisionModeChange={handlePrecisionModeChange}
-            isPremiumUser={MOCK_USER_IS_PREMIUM} // This will always be false for now
+            isPremiumUser={isPremiumUser}
           />
         </CardContent>
       </Card>
@@ -101,6 +116,7 @@ export default function ContentForgePage() {
       <UpgradeProModal 
         isOpen={isUpgradeModalOpen} 
         onClose={() => setIsUpgradeModalOpen(false)}
+        onUpgrade={handleUpgradeSuccess} // Pass the upgrade handler
       />
       
       <footer className="mt-12 text-center text-muted-foreground text-sm">
