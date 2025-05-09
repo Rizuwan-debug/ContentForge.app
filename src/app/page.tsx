@@ -14,6 +14,7 @@ import { useToast } from "@/hooks/use-toast";
 import { UpgradeProModal } from '@/components/content-forge/UpgradeProModal';
 import { Card, CardContent } from '@/components/ui/card';
 import { useAuth } from '@/hooks/use-auth'; 
+import { DonationButton } from '@/components/content-forge/DonationButton';
 
 
 export default function ContentForgePage() {
@@ -120,7 +121,8 @@ export default function ContentForgePage() {
       />
       
       <footer className="mt-12 text-center text-muted-foreground text-sm">
-        <p>&copy; {new Date().getFullYear()} ContentForge. All rights reserved.</p>
+        <DonationButton />
+        <p className="mt-6">&copy; {new Date().getFullYear()} ContentForge. All rights reserved.</p>
         <p>
           <a href="#" className="hover:text-primary transition-colors">Privacy Policy</a> | <a href="#" className="hover:text-primary transition-colors">Terms of Service</a>
         </p>
