@@ -15,6 +15,8 @@ import { UpgradeProModal } from '@/components/content-forge/UpgradeProModal';
 import { Card, CardContent } from '@/components/ui/card';
 import { useAuth } from '@/hooks/use-auth'; 
 import { DonationButton } from '@/components/content-forge/DonationButton';
+import { doc, getDoc } from 'firebase/firestore';
+import { db } from '@/lib/firebase/config';
 
 
 export default function ContentForgePage() {
@@ -24,21 +26,49 @@ export default function ContentForgePage() {
   const [generatedContent, setGeneratedContent] = useState<GeneratedContent | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState<boolean>(false);
-  const [isPremiumUser, setIsPremiumUser] = useState<boolean>(false); // Manage premium status with state
+  const [isPremiumUser, setIsPremiumUser] = useState<boolean>(false); 
   
   const { toast } = useToast();
-  const { user } = useAuth(); 
+  const { user, loading: authLoading } = useAuth(); 
 
-  // Effect to potentially set premium status based on user, e.g., from Firestore custom claims
-  // For now, it's just a placeholder. In a real app, you'd fetch this.
   useEffect(() => {
-    if (user) {
-      // Example: Check if user.uid === 'some_premium_user_uid' or fetch premium status from DB
-      // setIsPremiumUser(checkIfUserIsPremium(user.uid)); 
-    } else {
-      setIsPremiumUser(false); // Reset premium status if user logs out
+    const checkPremiumStatus = async () => {
+      if (user) {
+        // Check for a verified payment request
+        // This is a simplified check. A real app might query for active subscriptions.
+        // For now, if any verified payment exists, consider them premium.
+        const paymentQuery = collection(db, 'paymentRequests');
+        const q = query(paymentQuery, where('userId', '==', user.uid), where('status', '==', 'verified'));
+        const snapshot = await getDocs(q);
+        if (!snapshot.empty) {
+          setIsPremiumUser(true);
+          setIsPrecisionMode(true); // Also enable precision mode if already premium
+        } else {
+           // If no verified payment, check if they were temporarily premium from current session
+           // This local state `isPremiumUser` handles the "temporary access"
+           // If it's already true (from handleUpgradeSuccess), don't set it to false
+           // This part is tricky if we only rely on Firestore for truth after refresh
+           // For now, if Firestore says not premium, local state also becomes not premium
+           // unless it was just set by `handleUpgradeSuccess`
+           // A better approach would be to manage premium status more robustly in Firestore (e.g., subscription end date)
+           // For this brief, temporary local state + manual verification is the path.
+           // If isPremiumUser is true, it means it was set by handleUpgradeSuccess in current session.
+           // Keep it true until page refresh, then Firestore will be the source of truth.
+           // If we want to persist temp access across refresh before verification, we'd need local storage, but that's not asked.
+           // So on fresh load/auth change, Firestore is the primary check.
+           // setIsPremiumUser(false); // This would overwrite temporary access on auth change if not careful
+        }
+      } else {
+        setIsPremiumUser(false);
+        setIsPrecisionMode(false);
+      }
+    };
+
+    if (!authLoading) {
+      checkPremiumStatus();
     }
-  }, [user]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, authLoading]);
 
 
   const handlePlatformChange = (platform: Platform) => {
@@ -49,9 +79,13 @@ export default function ContentForgePage() {
   const handlePrecisionModeChange = (checked: boolean) => {
     if (checked && !isPremiumUser) {
       setIsUpgradeModalOpen(true);
-      setIsPrecisionMode(false); 
-    } else {
-      setIsPrecisionMode(checked);
+      // Don't set isPrecisionMode(false) here, modal opening handles it.
+      // The switch itself will revert if modal is cancelled.
+    } else if (checked && isPremiumUser) {
+        setIsPrecisionMode(true);
+    }
+    else {
+      setIsPrecisionMode(false);
     }
   };
 
@@ -69,7 +103,7 @@ export default function ContentForgePage() {
       const content = await generateAppContent({
         platform: selectedPlatform,
         topic,
-        isPrecisionMode: isPrecisionMode && isPremiumUser,
+        isPrecisionMode: isPrecisionMode && isPremiumUser, // Ensure both flags are true
         trendingKeywords,
       });
       setGeneratedContent(content);
@@ -85,15 +119,11 @@ export default function ContentForgePage() {
     }
   };
 
-  const handleUpgradeSuccess = () => {
+  // This function is called by UpgradeProModal after successfully logging payment attempt
+  const handleGrantTemporaryPremium = () => {
     setIsPremiumUser(true);
-    setIsUpgradeModalOpen(false);
-    setIsPrecisionMode(true); // Automatically enable precision mode on upgrade
-    toast({
-      title: "Upgrade Successful!",
-      description: "You are now a Pro member. Precision Mode unlocked!",
-      variant: "default", 
-    });
+    setIsPrecisionMode(true); // Automatically enable precision mode on successful claim
+    // Toast message is handled within UpgradeProModal after Firestore log
   };
 
   return (
@@ -114,11 +144,17 @@ export default function ContentForgePage() {
 
       <ContentDisplay content={generatedContent} isLoading={isLoading} platform={selectedPlatform} />
 
-      <UpgradeProModal 
-        isOpen={isUpgradeModalOpen} 
-        onClose={() => setIsUpgradeModalOpen(false)}
-        onUpgrade={handleUpgradeSuccess} // Pass the upgrade handler
-      />
+      {isUpgradeModalOpen && (
+        <UpgradeProModal 
+          isOpen={isUpgradeModalOpen} 
+          onClose={() => {
+            setIsUpgradeModalOpen(false);
+            // If precision mode was toggled on but modal closed without upgrading, revert switch
+            if (!isPremiumUser) setIsPrecisionMode(false); 
+          }}
+          onUpgrade={handleGrantTemporaryPremium}
+        />
+      )}
       
       <footer className="mt-12 text-center text-muted-foreground text-sm">
         <DonationButton />
@@ -130,3 +166,6 @@ export default function ContentForgePage() {
     </div>
   );
 }
+
+// Needed for Firestore query
+import { collection, query, where, getDocs } from 'firebase/firestore';
