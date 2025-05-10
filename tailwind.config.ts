@@ -83,15 +83,21 @@ export default {
   					height: '0'
   				}
   			},
-        'fadeIn': { // Ensure fadeIn keyframe is present
-          '0%': { opacity: '0' },
-          '100%': { opacity: '1' },
+        'pop-in': {
+          '0%': { opacity: '0', transform: 'scale(0.9) translateY(10px)' },
+          '70%': { opacity: '1', transform: 'scale(1.05) translateY(-5px)' },
+          '100%': { opacity: '1', transform: 'scale(1) translateY(0)' },
+        },
+        'slide-up-fade-in': {
+          'from': { opacity: '0', transform: 'translateY(20px)' },
+          'to': { opacity: '1', transform: 'translateY(0)' },
         },
   		},
   		animation: {
   			'accordion-down': 'accordion-down 0.2s ease-out',
   			'accordion-up': 'accordion-up 0.2s ease-out',
-        'fadeIn': 'fadeIn 0.5s ease-in-out', // Ensure fadeIn animation is present
+        'pop-in': 'pop-in 0.7s cubic-bezier(0.16, 1, 0.3, 1) forwards',
+        'slide-up-fade-in': 'slide-up-fade-in 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards',
   		},
       fontFamily: {
         sans: ['var(--font-geist-sans)'],
