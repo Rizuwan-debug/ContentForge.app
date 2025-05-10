@@ -44,21 +44,9 @@ export default function ContentForgePage() {
         const snapshot = await getDocs(q);
         if (!snapshot.empty) {
           setIsPremiumUser(true);
-          // If user is verified premium, Precision Mode should reflect this,
-          // but user might have manually toggled it off in current session.
-          // We only force it ON if it's not already set by user choice in the session
-          // For simplicity, if they are premium, we can enable it.
-          // If they turn it off, it stays off until next check or they turn it on.
-          // Or, always enable if premium:
           setIsPrecisionMode(true); 
-        } else {
-          // User is not verified premium in Firestore.
-          // If `isPremiumUser` is true here, it's from a temporary grant in this session.
-          // We don't set it to false, to preserve temporary access.
-          // If it's false, it remains false.
         }
       } else {
-        // No user, so not premium, and precision mode off.
         setIsPremiumUser(false);
         setIsPrecisionMode(false);
       }
@@ -79,13 +67,10 @@ export default function ContentForgePage() {
   const handlePrecisionModeChange = (checked: boolean) => {
     if (checked && !isPremiumUser) {
       setIsUpgradeModalOpen(true);
-      // Don't set isPrecisionMode immediately here.
-      // The switch UI might revert if modal is cancelled.
-      // If they upgrade, onUpgrade will set it.
     } else if (checked && isPremiumUser) {
         setIsPrecisionMode(true);
     }
-    else { // Handles both (isPremiumUser && !checked) and (!isPremiumUser && !checked)
+    else { 
       setIsPrecisionMode(false);
     }
   };
@@ -97,7 +82,6 @@ export default function ContentForgePage() {
 
     try {
       let trendingKeywords: TrendingKeyword[] = [];
-      // Precision mode content generation only if user is premium *and* has the toggle enabled.
       if (isPremiumUser && isPrecisionMode) { 
         trendingKeywords = await getTrendingKeywords('general'); 
       }
@@ -122,42 +106,74 @@ export default function ContentForgePage() {
   };
 
   const handleGrantTemporaryPremium = () => {
-    setIsPremiumUser(true); // Grant temporary premium status
-    setIsPrecisionMode(true); // Automatically enable precision mode on successful claim
-    // Toast message for success is handled within UpgradeProModal
+    setIsPremiumUser(true); 
+    setIsPrecisionMode(true); 
   };
 
   return (
-    <div className="container mx-auto max-w-3xl py-8 px-4">
+    <div className="container mx-auto max-w-7xl py-8 px-4"> {/* Expanded container for side ads */}
       <Header />
       
-      <Card className="mb-8 shadow-xl bg-card/80 backdrop-blur-sm">
-        <CardContent className="p-6">
-          <PlatformSelector selectedPlatform={selectedPlatform} onPlatformChange={handlePlatformChange} />
-          <TopicInputForm onSubmit={handleTopicSubmit} isLoading={isLoading} />
-          <PrecisionModeToggle 
-            isPrecisionMode={isPrecisionMode} 
-            onPrecisionModeChange={handlePrecisionModeChange}
-            isPremiumUser={isPremiumUser} // Pass this to correctly reflect state in toggle
-          />
-        </CardContent>
-      </Card>
+      <div className="flex flex-col lg:flex-row lg:gap-x-8"> {/* Flex container for main content and side ads */}
+        
+        {/* Desktop Left Ad Panel */}
+        <aside id="ad-slot-left" className="ad-slot hidden lg:flex flex-col w-[120px] h-[600px] bg-muted rounded-lg shadow-md p-2 flex-shrink-0 lg:order-1">
+          <div className="flex flex-col items-center justify-center h-full border border-dashed border-muted-foreground/30 rounded-md">
+            <p className="text-sm font-medium text-muted-foreground">AD</p>
+            <p className="text-xs text-muted-foreground">(120x600)</p>
+          </div>
+        </aside>
 
-      <div className="my-8 p-4 border-2 border-dashed border-muted-foreground text-center text-muted-foreground bg-card rounded-lg">
-        <p className="font-semibold text-lg">Advertisement</p>
-        <p className="text-sm">(Future Ad Slot - e.g., 728x90)</p>
-        <div data-ai-hint="banner ad" className="mt-2 bg-muted h-24 w-full flex items-center justify-center text-sm">Ad Content Area</div>
+        {/* Main Content Area */}
+        <main className="flex-grow lg:order-2 min-w-0">
+          <Card className="mb-6 shadow-xl bg-card/80 backdrop-blur-sm">
+            <CardContent className="p-6">
+              <PlatformSelector selectedPlatform={selectedPlatform} onPlatformChange={handlePlatformChange} />
+              <TopicInputForm onSubmit={handleTopicSubmit} isLoading={isLoading} />
+              <PrecisionModeToggle 
+                isPrecisionMode={isPrecisionMode} 
+                onPrecisionModeChange={handlePrecisionModeChange}
+                isPremiumUser={isPremiumUser}
+              />
+            </CardContent>
+          </Card>
+
+          {/* Existing Banner Ad Slot (remains for all sizes) */}
+          <div className="my-6 p-4 border-2 border-dashed border-muted-foreground text-center text-muted-foreground bg-card rounded-lg">
+            <p className="font-semibold text-lg">Advertisement</p>
+            <p className="text-sm">(Future Ad Slot - e.g., 728x90)</p>
+            <div data-ai-hint="banner ad" className="mt-2 bg-muted h-24 w-full flex items-center justify-center text-sm">Ad Content Area</div>
+          </div>
+          
+          {/* Mobile Ad Slot 1 (shown when sidebars are hidden) */}
+          <div id="ad-slot-mobile-1" className="ad-slot block lg:hidden my-6 p-4 border-2 border-dashed border-muted-foreground text-center text-muted-foreground bg-card rounded-lg">
+            <p className="font-semibold text-lg">Advertisement</p>
+            <div className="mt-2 bg-muted h-52 w-full flex items-center justify-center text-sm">Mobile Ad Area 1</div>
+          </div>
+
+          <ContentDisplay content={generatedContent} isLoading={isLoading} platform={selectedPlatform} />
+
+          {/* Mobile Ad Slot 2 (shown when sidebars are hidden) */}
+          <div id="ad-slot-mobile-2" className="ad-slot block lg:hidden my-6 p-4 border-2 border-dashed border-muted-foreground text-center text-muted-foreground bg-card rounded-lg">
+            <p className="font-semibold text-lg">Advertisement</p>
+            <div className="mt-2 bg-muted h-52 w-full flex items-center justify-center text-sm">Mobile Ad Area 2</div>
+          </div>
+        </main>
+
+        {/* Desktop Right Ad Panel */}
+        <aside id="ad-slot-right" className="ad-slot hidden lg:flex flex-col w-[120px] h-[600px] bg-muted rounded-lg shadow-md p-2 flex-shrink-0 lg:order-3">
+          <div className="flex flex-col items-center justify-center h-full border border-dashed border-muted-foreground/30 rounded-md">
+            <p className="text-sm font-medium text-muted-foreground">AD</p>
+            <p className="text-xs text-muted-foreground">(120x600)</p>
+          </div>
+        </aside>
       </div>
-
-      <ContentDisplay content={generatedContent} isLoading={isLoading} platform={selectedPlatform} />
 
       {isUpgradeModalOpen && (
         <UpgradeProModal 
           isOpen={isUpgradeModalOpen} 
           onClose={() => {
             setIsUpgradeModalOpen(false);
-            // If precision mode was toggled on but modal closed without upgrading, revert the switch state.
-            // This relies on isPremiumUser not being true yet.
             if (!isPremiumUser && isPrecisionMode) {
                  setIsPrecisionMode(false); 
             }
@@ -169,6 +185,7 @@ export default function ContentForgePage() {
       <footer className="mt-12 text-center text-muted-foreground text-sm">
         <DonationButton />
         
+        {/* Existing Square Ad Slot in Footer (remains for all sizes) */}
         <div className="my-8 p-4 border-2 border-dashed border-muted-foreground text-center text-muted-foreground bg-card rounded-lg">
           <p className="font-semibold text-lg">Advertisement</p>
           <p className="text-sm">(Future Ad Slot - e.g., 300x250)</p>
