@@ -111,21 +111,21 @@ export default function ContentForgePage() {
   };
 
   return (
-    <div className="container mx-auto max-w-7xl py-8 px-4"> {/* Expanded container for side ads */}
+    <div className="container mx-auto max-w-7xl py-8 px-4">
       <Header />
       
-      <div className="flex flex-col lg:flex-row lg:gap-x-8"> {/* Flex container for main content and side ads */}
+      <div className="flex flex-col lg:flex-row lg:justify-center lg:gap-x-6">
         
         {/* Desktop Left Ad Panel */}
-        <aside id="ad-slot-left" className="ad-slot hidden lg:flex flex-col w-[120px] h-[600px] bg-muted rounded-lg shadow-md p-2 flex-shrink-0 lg:order-1">
+        <aside id="ad-slot-left" className="ad-slot hidden lg:flex flex-col w-[100px] h-[600px] bg-muted rounded-lg shadow-md p-2 flex-shrink-0 lg:order-1">
           <div className="flex flex-col items-center justify-center h-full border border-dashed border-muted-foreground/30 rounded-md">
             <p className="text-sm font-medium text-muted-foreground">AD</p>
-            <p className="text-xs text-muted-foreground">(120x600)</p>
+            <p className="text-xs text-muted-foreground">(100x600)</p>
           </div>
         </aside>
 
         {/* Main Content Area */}
-        <main className="flex-grow lg:order-2 min-w-0">
+        <main className="flex-grow lg:order-2 lg:min-w-[640px] lg:max-w-[800px] min-w-0">
           <Card className="mb-6 shadow-xl bg-card/80 backdrop-blur-sm">
             <CardContent className="p-6">
               <PlatformSelector selectedPlatform={selectedPlatform} onPlatformChange={handlePlatformChange} />
@@ -161,10 +161,10 @@ export default function ContentForgePage() {
         </main>
 
         {/* Desktop Right Ad Panel */}
-        <aside id="ad-slot-right" className="ad-slot hidden lg:flex flex-col w-[120px] h-[600px] bg-muted rounded-lg shadow-md p-2 flex-shrink-0 lg:order-3">
+        <aside id="ad-slot-right" className="ad-slot hidden lg:flex flex-col w-[100px] h-[600px] bg-muted rounded-lg shadow-md p-2 flex-shrink-0 lg:order-3">
           <div className="flex flex-col items-center justify-center h-full border border-dashed border-muted-foreground/30 rounded-md">
             <p className="text-sm font-medium text-muted-foreground">AD</p>
-            <p className="text-xs text-muted-foreground">(120x600)</p>
+            <p className="text-xs text-muted-foreground">(100x600)</p>
           </div>
         </aside>
       </div>
@@ -200,3 +200,4 @@ export default function ContentForgePage() {
     </div>
   );
 }
+
