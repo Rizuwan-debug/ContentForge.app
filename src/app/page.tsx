@@ -118,16 +118,17 @@ export default function ContentForgePage() {
               onPrecisionModeChange={handlePrecisionModeChange}
               isPremiumUser={isPremiumUser}
             />
+             <div className="mt-8 flex justify-center">
+              <DonationButton />
+            </div>
           </CardContent>
         </Card>
       </main>
 
-      {/* Donation Button and All Ads Below Main Content */}
+      {/* All Ads Below Main Content */}
       <div className="mt-10 w-full max-w-3xl mx-auto flex flex-col items-center">
-        <DonationButton />
-
         {/* All Ad Slots Grouped Here */}
-        <div className="w-full mt-8 space-y-8">
+        <div className="w-full space-y-8">
           {/* Ad Slot 1 (formerly left sidebar) */}
           <div id="ad-slot-left" className="ad-slot w-full max-w-md mx-auto bg-muted rounded-lg shadow-md p-4">
             <div className="flex flex-col items-center justify-center h-[150px] border border-dashed border-muted-foreground/30 rounded-md">
