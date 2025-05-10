@@ -10,6 +10,11 @@ import { AuthProvider } from '@/providers/auth-provider'; // Added AuthProvider
 export const metadata: Metadata = {
   title: 'ContentForge - SEO Content Generator',
   description: 'Generate optimized YouTube titles, Instagram captions, and hashtags with ContentForge.',
+  icons: {
+    icon: '/logo.png', // Updated favicon path
+    // sizes: '32x32', // Optional: specify sizes if needed
+    // type: 'image/png', // Optional: specify type if needed, Next.js infers from extension
+  },
 };
 
 export default function RootLayout({
@@ -37,3 +42,4 @@ export default function RootLayout({
     </html>
   );
 }
+
