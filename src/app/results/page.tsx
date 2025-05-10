@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, Suspense } from 'react';
@@ -65,7 +66,7 @@ function ResultsContent() {
 
   useEffect(() => {
     if (platform && topic && !authLoading) { // Wait for authLoading to finish
-      constfetchContent = async () => {
+      const fetchContent = async () => {
         setIsLoading(true);
         setError(null);
         setGeneratedContent(null);
