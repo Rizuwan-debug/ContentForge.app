@@ -83,7 +83,7 @@ export default {
   					height: '0'
   				}
   			},
-        'fadeIn': {
+        'fadeIn': { // Ensure fadeIn keyframe is present
           '0%': { opacity: '0' },
           '100%': { opacity: '1' },
         },
@@ -91,7 +91,7 @@ export default {
   		animation: {
   			'accordion-down': 'accordion-down 0.2s ease-out',
   			'accordion-up': 'accordion-up 0.2s ease-out',
-        'fadeIn': 'fadeIn 0.5s ease-in-out',
+        'fadeIn': 'fadeIn 0.5s ease-in-out', // Ensure fadeIn animation is present
   		},
       fontFamily: {
         sans: ['var(--font-geist-sans)'],

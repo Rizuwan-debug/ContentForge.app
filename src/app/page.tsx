@@ -15,7 +15,7 @@ import { UpgradeProModal } from '@/components/content-forge/UpgradeProModal';
 import { Card, CardContent } from '@/components/ui/card';
 import { useAuth } from '@/hooks/use-auth'; 
 import { DonationButton } from '@/components/content-forge/DonationButton';
-import { doc, getDoc } from 'firebase/firestore';
+import { collection, query, where, getDocs } from 'firebase/firestore'; // Corrected imports
 import { db } from '@/lib/firebase/config';
 
 
@@ -27,38 +27,38 @@ export default function ContentForgePage() {
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState<boolean>(false);
   const [isPremiumUser, setIsPremiumUser] = useState<boolean>(false); 
+  const [currentYear, setCurrentYear] = useState<number | null>(null);
   
   const { toast } = useToast();
   const { user, loading: authLoading } = useAuth(); 
 
   useEffect(() => {
+    setCurrentYear(new Date().getFullYear());
+  }, []);
+
+  useEffect(() => {
     const checkPremiumStatus = async () => {
       if (user) {
-        // Check for a verified payment request
-        // This is a simplified check. A real app might query for active subscriptions.
-        // For now, if any verified payment exists, consider them premium.
         const paymentQuery = collection(db, 'paymentRequests');
         const q = query(paymentQuery, where('userId', '==', user.uid), where('status', '==', 'verified'));
         const snapshot = await getDocs(q);
         if (!snapshot.empty) {
           setIsPremiumUser(true);
-          setIsPrecisionMode(true); // Also enable precision mode if already premium
+          // If user is verified premium, Precision Mode should reflect this,
+          // but user might have manually toggled it off in current session.
+          // We only force it ON if it's not already set by user choice in the session
+          // For simplicity, if they are premium, we can enable it.
+          // If they turn it off, it stays off until next check or they turn it on.
+          // Or, always enable if premium:
+          setIsPrecisionMode(true); 
         } else {
-           // If no verified payment, check if they were temporarily premium from current session
-           // This local state `isPremiumUser` handles the "temporary access"
-           // If it's already true (from handleUpgradeSuccess), don't set it to false
-           // This part is tricky if we only rely on Firestore for truth after refresh
-           // For now, if Firestore says not premium, local state also becomes not premium
-           // unless it was just set by `handleUpgradeSuccess`
-           // A better approach would be to manage premium status more robustly in Firestore (e.g., subscription end date)
-           // For this brief, temporary local state + manual verification is the path.
-           // If isPremiumUser is true, it means it was set by handleUpgradeSuccess in current session.
-           // Keep it true until page refresh, then Firestore will be the source of truth.
-           // If we want to persist temp access across refresh before verification, we'd need local storage, but that's not asked.
-           // So on fresh load/auth change, Firestore is the primary check.
-           // setIsPremiumUser(false); // This would overwrite temporary access on auth change if not careful
+          // User is not verified premium in Firestore.
+          // If `isPremiumUser` is true here, it's from a temporary grant in this session.
+          // We don't set it to false, to preserve temporary access.
+          // If it's false, it remains false.
         }
       } else {
+        // No user, so not premium, and precision mode off.
         setIsPremiumUser(false);
         setIsPrecisionMode(false);
       }
@@ -79,12 +79,13 @@ export default function ContentForgePage() {
   const handlePrecisionModeChange = (checked: boolean) => {
     if (checked && !isPremiumUser) {
       setIsUpgradeModalOpen(true);
-      // Don't set isPrecisionMode(false) here, modal opening handles it.
-      // The switch itself will revert if modal is cancelled.
+      // Don't set isPrecisionMode immediately here.
+      // The switch UI might revert if modal is cancelled.
+      // If they upgrade, onUpgrade will set it.
     } else if (checked && isPremiumUser) {
         setIsPrecisionMode(true);
     }
-    else {
+    else { // Handles both (isPremiumUser && !checked) and (!isPremiumUser && !checked)
       setIsPrecisionMode(false);
     }
   };
@@ -96,14 +97,15 @@ export default function ContentForgePage() {
 
     try {
       let trendingKeywords: TrendingKeyword[] = [];
-      if (isPrecisionMode && isPremiumUser) { 
+      // Precision mode content generation only if user is premium *and* has the toggle enabled.
+      if (isPremiumUser && isPrecisionMode) { 
         trendingKeywords = await getTrendingKeywords('general'); 
       }
 
       const content = await generateAppContent({
         platform: selectedPlatform,
         topic,
-        isPrecisionMode: isPrecisionMode && isPremiumUser, // Ensure both flags are true
+        isPrecisionMode: isPremiumUser && isPrecisionMode, 
         trendingKeywords,
       });
       setGeneratedContent(content);
@@ -119,11 +121,10 @@ export default function ContentForgePage() {
     }
   };
 
-  // This function is called by UpgradeProModal after successfully logging payment attempt
   const handleGrantTemporaryPremium = () => {
-    setIsPremiumUser(true);
+    setIsPremiumUser(true); // Grant temporary premium status
     setIsPrecisionMode(true); // Automatically enable precision mode on successful claim
-    // Toast message is handled within UpgradeProModal after Firestore log
+    // Toast message for success is handled within UpgradeProModal
   };
 
   return (
@@ -137,10 +138,16 @@ export default function ContentForgePage() {
           <PrecisionModeToggle 
             isPrecisionMode={isPrecisionMode} 
             onPrecisionModeChange={handlePrecisionModeChange}
-            isPremiumUser={isPremiumUser}
+            isPremiumUser={isPremiumUser} // Pass this to correctly reflect state in toggle
           />
         </CardContent>
       </Card>
+
+      <div className="my-8 p-4 border-2 border-dashed border-muted-foreground text-center text-muted-foreground bg-card rounded-lg">
+        <p className="font-semibold text-lg">Advertisement</p>
+        <p className="text-sm">(Future Ad Slot - e.g., 728x90)</p>
+        <div data-ai-hint="banner ad" className="mt-2 bg-muted h-24 w-full flex items-center justify-center text-sm">Ad Content Area</div>
+      </div>
 
       <ContentDisplay content={generatedContent} isLoading={isLoading} platform={selectedPlatform} />
 
@@ -149,8 +156,11 @@ export default function ContentForgePage() {
           isOpen={isUpgradeModalOpen} 
           onClose={() => {
             setIsUpgradeModalOpen(false);
-            // If precision mode was toggled on but modal closed without upgrading, revert switch
-            if (!isPremiumUser) setIsPrecisionMode(false); 
+            // If precision mode was toggled on but modal closed without upgrading, revert the switch state.
+            // This relies on isPremiumUser not being true yet.
+            if (!isPremiumUser && isPrecisionMode) {
+                 setIsPrecisionMode(false); 
+            }
           }}
           onUpgrade={handleGrantTemporaryPremium}
         />
@@ -158,7 +168,14 @@ export default function ContentForgePage() {
       
       <footer className="mt-12 text-center text-muted-foreground text-sm">
         <DonationButton />
-        <p className="mt-6">&copy; {new Date().getFullYear()} ContentForge. All rights reserved.</p>
+        
+        <div className="my-8 p-4 border-2 border-dashed border-muted-foreground text-center text-muted-foreground bg-card rounded-lg">
+          <p className="font-semibold text-lg">Advertisement</p>
+          <p className="text-sm">(Future Ad Slot - e.g., 300x250)</p>
+          <div data-ai-hint="square ad" className="mt-2 bg-muted h-32 w-full sm:w-64 mx-auto flex items-center justify-center text-sm">Ad Content Area</div>
+        </div>
+
+        {currentYear && <p className="mt-6">&copy; {currentYear} ContentForge. All rights reserved.</p>}
         <p>
           <a href="#" className="hover:text-primary transition-colors">Privacy Policy</a> | <a href="#" className="hover:text-primary transition-colors">Terms of Service</a>
         </p>
@@ -166,6 +183,3 @@ export default function ContentForgePage() {
     </div>
   );
 }
-
-// Needed for Firestore query
-import { collection, query, where, getDocs } from 'firebase/firestore';
